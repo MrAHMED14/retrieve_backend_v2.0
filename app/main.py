@@ -1,5 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException # type: ignore
+from fastapi.responses import JSONResponse # type: ignore
 from app.services.file_handler import extract_text
 from app.services.text_preprocessor import preprocess_text
 from app.services.tfidf_indexer import TFIDFIndexer
