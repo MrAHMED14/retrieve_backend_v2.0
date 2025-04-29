@@ -1,12 +1,26 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException # type: ignore
 from fastapi.responses import JSONResponse # type: ignore
+from fastapi.middleware.cors import CORSMiddleware # type: ignore
 from app.services.file_handler import extract_text
 from app.services.text_preprocessor import preprocess_text
 from app.services.tfidf_indexer import TFIDFIndexer
 from app.storage.database import save_index, load_index
+from typing import List
 import os
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize the indexer
 indexer = TFIDFIndexer()
@@ -16,12 +30,19 @@ if os.path.exists("tfidf_index.pkl"):
     indexer = load_index("tfidf_index.pkl")
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    content = await file.read()
-    text = extract_text(content, file.filename)
-    doc_id = indexer.add_document(text, file.filename)  # Return the generated UUID
+async def upload_files(files: List[UploadFile] = File(...)):
+    uploaded = []
+
+    for file in files:
+        content = await file.read()
+        text = extract_text(content, file.filename)
+        doc_id = indexer.add_document(text, file.filename)
+        if doc_id: 
+            uploaded.append({"filename": file.filename, "id": doc_id})
+
     save_index(indexer, "tfidf_index.pkl")
-    return {"message": "File indexed successfully", "filename": file.filename, "id": doc_id}
+
+    return {"message": f"{len(uploaded)} new files indexed successfully!", "files": uploaded}
 
 @app.post("/search")
 async def search_documents(query: str):

@@ -11,6 +11,10 @@ class TFIDFIndexer:
         self.tfidf_matrix = None
 
     def add_document(self, text, filename):
+        if any(doc["filename"] == filename for doc in self.documents_info):
+            print(f"File '{filename}' is already indexed. Skipping.")
+            return None
+        
         doc_id = str(uuid.uuid4())
 
         processed_text = preprocess_text(text)
