@@ -3,10 +3,14 @@ from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 import nltk
 
-nltk.download('stopwords')
+# Download 'stopwords' only if missing
+try:
+    stop_words = set(stopwords.words('english'))
+except LookupError:
+    nltk.download('stopwords')
+    stop_words = set(stopwords.words('english'))
 
 stemmer = PorterStemmer()
-stop_words = set(stopwords.words('english'))
 
 def preprocess_text(text):
     text = text.lower()

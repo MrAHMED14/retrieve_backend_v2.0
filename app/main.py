@@ -19,10 +19,9 @@ if os.path.exists("tfidf_index.pkl"):
 async def upload_file(file: UploadFile = File(...)):
     content = await file.read()
     text = extract_text(content, file.filename)
-    clean_text = preprocess_text(text)
-    indexer.add_document(clean_text, file.filename)
+    doc_id = indexer.add_document(text, file.filename)  # Return the generated UUID
     save_index(indexer, "tfidf_index.pkl")
-    return {"message": "File indexed successfully", "filename": file.filename}
+    return {"message": "File indexed successfully", "filename": file.filename, "id": doc_id}
 
 @app.post("/search")
 async def search_documents(query: str):
@@ -31,18 +30,20 @@ async def search_documents(query: str):
 
 @app.get("/files")
 async def list_files():
-    filenames = indexer.filenames
-    return JSONResponse(content={"files": filenames})
+    files = [{"id": doc["id"], "filename": doc["filename"]} for doc in indexer.documents_info]
+    return JSONResponse(content={"files": files})
 
-@app.delete("/remove-file/{filename}")
-def remove_file(filename: str):
+@app.delete("/remove-file/{doc_id}")
+def remove_file(doc_id: str):
     try:
-        indexer.remove_file(filename)
-        return JSONResponse(content={"message": f"File '{filename}' removed successfully!"})
+        indexer.remove_file(doc_id)
+        save_index(indexer, "tfidf_index.pkl")
+        return JSONResponse(content={"message": f"File with ID '{doc_id}' removed successfully!"})
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 @app.delete("/remove-all-files")
 def remove_all_files():
     indexer.remove_all_files()
-    return JSONResponse(content={"message": "All files removed successfully!"})
+    save_index(indexer, "tfidf_index.pkl")
+    return JSONResponse(content={"message": "All files removed successfully!"}) 
